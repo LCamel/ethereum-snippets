@@ -31,10 +31,10 @@ CAFEBABE  // body being appended here
 `)
 console.log("initCafeBabe: " + initCafeBabe);
 
-// Prepend this 12-byte code before the body
+// append any body after this fixed, 0x0B-byte code
 var deployer = asm(`
-PUSH1 0B  // [... RETURN] fixed deployer size
-CODESIZE
+PUSH1 0B  // deployer size (fixed)
+CODESIZE  // deployer + body
 SUB       // 1: length of body
 DUP1         // 2: length of body
 PUSH1 0B     // 1: code src offset
@@ -65,80 +65,3 @@ var deploy = async (initCode) => {
 await deploy(init42);
 await deploy(initCafeBabe);
 await deploy(deployer + "CAFEBABE");
-
-throw "";
-
-var initCodeWithValue = asm(`
-CALLVALUE // push CALLVALUE on the stack
-PUSH1 00  // mem offset
-MSTORE8   // mem[0] = CALLVALUE % 256
-PUSH1 01  // mem length
-PUSH1 00  // mem offset
-RETURN    // return mem[0 ... 0 + 1)
-`);
-console.log(initCodeWithValue); // 3460005360016000F3
-
-var factory = asm(`
-PUSH9 ${initCodeWithValue} // target init code (9 bytes)
-PUSH1 00   // mem offset
-MSTORE     // mem[32 - 9 ...] = 0x34600053...
-           // leading zero offset = 32 - 9 = 23 = 0x17
-
-PUSH1 00   // 3: salt
-PUSH1 09   // 2: init codesize
-PUSH1 17   // 1: memory src offset 0x17
-CALLVALUE  // 0: pass value as the init code value
-CREATE2
-`);
-
-
-/*
-var tx = await signer.sendTransaction({data: "0x" + initCodeWithValue, value: 0x42});
-console.log("tx.hash: " + tx.hash);
-var receipt = await tx.wait();
-console.log("receipt: " + JSON.stringify(receipt));
-var body = await provider.getCode(receipt.contractAddress);
-console.log("body: " + body);
-*/
-var tx = await signer.sendTransaction({data: "0x" + initWithPayload + factory});
-console.log("tx.hash: " + tx.hash);
-var receipt = await tx.wait();
-console.log("receipt: " + JSON.stringify(receipt));
-var body = await provider.getCode(receipt.contractAddress);
-console.log("body: " + body);
-
-var targetAddress = ethers.utils.keccak256(
-    "0x" + "ff" + receipt.contractAddress.substring(2)
-    + "0000000000000000000000000000000000000000000000000000000000000000"
-    + ethers.utils.keccak256("0x" + initCodeWithValue).substring(2)
-    ).substring(2 + 12 * 2);
-console.log("targetAddress: " + targetAddress);
-
-// 256 / 8 = 32 bytes
-// 160 / 8 = 20 bytes
-// 96 / 8 = 12kkk
-
-/*
-var code = asm(`
-PUSH1 0B  // [... RETURN] size
-CODESIZE
-SUB       // 1: length of payload
-DUP1         // 2: length of payload
-PUSH1 0B     // 1: code src offset
-_MYZERO_     // 0: memory dest offset
-CODECOPY
-_MYZERO_  // 0: memory src offset
-RETURN
- 
-CALLDATASIZE // 2: size
-PUSH1 00     // 1: call data src offset
-PUSH1 00     // 0: memory dest offset
-CALLDATACOPY
-PUSH1 00     // 3: salt
-CALLDATASIZE // 2: size
-PUSH1 00     // 1: memory src offset
-PUSH1 00     // 0: endowment
-CREATE2
-`);
-console.log("code: " + code);
-*/
