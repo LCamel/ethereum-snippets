@@ -10,11 +10,11 @@ var asm = (c) => {
 }
 
 var init42 = asm(`
-PUSH1 42
-PUSH1 00  // mem offset
+PUSH1 42  // 1: value
+PUSH1 00  // 0: mem dest offset
 MSTORE8   // mem[0] = 0x42
-PUSH1 01  // mem length
-PUSH1 00  // mem offset
+PUSH1 01  // 1: mem length
+PUSH1 00  // 0: mem offset
 RETURN    // return mem[offset ... offset + length)
 `);
 console.log("init42: " + init42);
@@ -22,7 +22,7 @@ console.log("init42: " + init42);
 var initCafeBabe = asm(`
 PUSH1 04  // 2: length of body
 PUSH1 0C  // 1: code src offset (skip deployer size)
-PUSH1 00  // 0: memory dest offset
+PUSH1 00  // 0: mem dest offset
 CODECOPY  // now mem[0..4) = 0xCAFEBABE
 PUSH1 04  // 1: length of body
 PUSH1 00  // 0: mem offset
@@ -31,7 +31,7 @@ CAFEBABE  // body being appended here
 `)
 console.log("initCafeBabe: " + initCafeBabe);
 
-// append any body after this fixed, 0x0B-byte code
+// append any body after this fixed, 0x0B-byte deployer
 var deployer = asm(`
 PUSH1 0B  // deployer size (fixed)
 CODESIZE  // deployer + body
