@@ -6,7 +6,7 @@ var asm = (c) => {
      CREATE2 F5 RETURN F3 SELFDESTRUCT FF`
         .replace(/(\w+)\s*(\w+)\s*/g, (_,k,v) => bin[k] = v); // make bin
 
-    return c.replace(/\/\/.*?\n/g, "")                // *no comment*
+    return c.replace(/\/\/.*?\n/g, "")                // remove comments
         .replace(/\s*(\w+)\s*/g, (_,s) => bin[s]||s); // replace with bin
 }
 
@@ -50,8 +50,8 @@ CREATE2       // send the init code mem[0 ... init code size)
               // which is on the top of the stack
 PUSH1 00
 MSTORE        // mem[0...32) = CREATE2 result addr
-PUSH1 14      // 1: size 0x14 = 20 bytes (160 bits)
-PUSH1 0C      // 0: offset 0x0C = 12 bytes
+PUSH1 14      // LOG0 arg 1: size 0x14 = 20 bytes (160 bits)
+PUSH1 0C      // LOG0 arg 0: offset 0x0C = 12 bytes
 LOG0          // LOG the result addr
 `);
 
