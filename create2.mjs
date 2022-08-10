@@ -95,7 +95,7 @@ var assert = await import("node:assert")
 assert.ok(body1 != null && body2 != null);
 assert.ok(addr1 == addr2 && body1 != body2);
 
-// ASSERT: at the expected address
+// ASSERT: at the expected CREATE2 address
 var initHash = ethers.utils.keccak256("0x" + bombOrCafe).substring(2);
 var salt = "0000000000000000000000000000000000000000000000000000000000000000";
 var addr = "0x" + ethers.utils.keccak256(
