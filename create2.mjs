@@ -15,7 +15,7 @@ var asm = (c) => {
 var bombOrCafe = asm(`
 CALLVALUE
 PUSH1 0F  // jump to 0x0F if value != 0
-JUMPI  
+JUMPI
 
 PUSH2 3DFF
 PUSH1 00
@@ -91,11 +91,11 @@ console.log("addr2: " + addr2 + " body2: " + body2);
 
 
 // ASSERT: same address, different code
-var assert = await import("node:assert")
+var assert = await import("node:assert");
 assert.ok(body1 != null && body2 != null);
 assert.ok(addr1 == addr2 && body1 != body2);
 
-// ASSERT: at the expected CREATE2 address
+// ASSERT: at the expected CREATE2 address (for illustration)
 var initHash = ethers.utils.keccak256("0x" + bombOrCafe).substring(2);
 var salt = "0000000000000000000000000000000000000000000000000000000000000000";
 var addr = "0x" + ethers.utils.keccak256(
@@ -105,3 +105,5 @@ var addr = "0x" + ethers.utils.keccak256(
     + initHash
     ).substring(2 + 24);
 assert.ok(addr1 == addr);
+assert.ok(addr == ethers.utils.getCreate2Address(
+    factoryAddr, "0x" + salt, "0x" + initHash).toLowerCase());
