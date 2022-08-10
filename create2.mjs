@@ -55,9 +55,6 @@ PUSH1 0C      // LOG0 arg 0: offset 0x0C = 12 bytes
 LOG0          // LOG the result addr
 `);
 
-// append any body after this fixed, 0x0B-byte deployer
-var deployer = "600B380380600B3D393DF3";
-
 
 var ethers = await import("ethers");
 var provider = new ethers.providers.AlchemyProvider(
@@ -67,24 +64,44 @@ var signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 var txReceipt = async (t) => (await signer.sendTransaction(t)).wait();
 
 // STEP 0: deploy the factory contract
+var deployer = "600B380380600B3D393DF3";
 var factoryAddr = (await txReceipt(
     {data: "0x" + deployer + calldataAsInitFactory})).contractAddress;
 console.log("factoryAddr: " + factoryAddr);
 
 
 // STEP 1: value 0 => depoly "bomb"
-var receipt1 = await txReceipt(
-    {data: "0x" + bombOrCafe, to: factoryAddr, value: 0});
-console.log("addr1: " + receipt1.logs[0].data
-    + " body1: " + await provider.getCode(receipt1.logs[0].data));
+var addr1 = (await txReceipt(
+    {data: "0x" + bombOrCafe, to: factoryAddr, value: 0}
+    )).logs[0].data;
+var body1 = await provider.getCode(addr1);
+console.log("addr1: " + addr1 + " body1: " + body1);
 
 
 // STEP 2: trigger the bomb
-await txReceipt({to: receipt1.logs[0].data});
+await txReceipt({to: addr1});
 
 
 // STEP 3: value 1 => re-deploy "cafe"
-var receipt2 = await txReceipt(
-    {data: "0x" + bombOrCafe, to: factoryAddr, value: 1});
-console.log("addr2: " + receipt2.logs[0].data
-    + " body2: " + await provider.getCode(receipt2.logs[0].data));
+var addr2 = (await txReceipt(
+    {data: "0x" + bombOrCafe, to: factoryAddr, value: 1}
+    )).logs[0].data;
+var body2 = await provider.getCode(addr2);
+console.log("addr2: " + addr2 + " body2: " + body2);
+
+
+// ASSERT: same address, different code
+var assert = await import("node:assert")
+assert.ok(body1 != null && body2 != null);
+assert.ok(addr1 == addr2 && body1 != body2);
+
+// ASSERT: at the expected address
+var initHash = ethers.utils.keccak256("0x" + bombOrCafe).substring(2);
+var salt = "0000000000000000000000000000000000000000000000000000000000000000";
+var addr = "0x" + ethers.utils.keccak256(
+    "0xff"
+    + factoryAddr.substring(2)
+    + salt
+    + initHash
+    ).substring(2 + 24);
+assert.ok(addr1 == addr);
