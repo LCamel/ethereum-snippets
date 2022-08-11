@@ -16,7 +16,8 @@ contract DCBomb {
 }
 contract DCDCBomb {
     address public dcbomb = address(new DCBomb());
-    fallback () external {
+    constructor() payable {}
+    fallback() external {
         dcbomb.delegatecall("");
     }
 }
@@ -39,17 +40,19 @@ var signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 var txReceipt = async (t) => (await signer.sendTransaction(t)).wait();
 
+var show = async (addr) => {
+    console.log("======== addr: " + addr);
+    console.log("nonce: " + await provider.getTransactionCount(addr));
+    console.log("balance: " + await provider.getBalance(addr));
+    console.log("slot 0: " + await provider.getStorageAt(addr, 0));
+    console.log("code: " + await provider.getCode(addr));
+};
+
 // deploy DCDCBomb
-var addr = (await txReceipt({data: "0x" + dcdcbomb})).contractAddress;
-console.log("addr: " + addr);
+var addr = (await txReceipt({data: "0x" + dcdcbomb, value: 42})).contractAddress;
 
-// should be "2" and a non-zero address (dcbomb)
-console.log("tx count: " + await provider.getTransactionCount(addr));
-console.log("slot 0: " + await provider.getStorageAt(addr, 0));
+show(addr);
 
-// trigger the bomb
-await txReceipt({to: addr, gasLimit: 100000});
+await txReceipt({to: addr, gasLimit: 100000}); // trigger the bomb
 
-// should be "0" and "0x0000...0000"
-console.log("tx count: " + await provider.getTransactionCount(addr));
-console.log("slot 0: " + await provider.getStorageAt(addr, 0));
+show(addr);
