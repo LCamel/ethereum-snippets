@@ -5,12 +5,12 @@ var src = `
 pragma solidity ^0.8.15;
 
 contract Bomb {
-    fallback () external {
+    fallback() external {
         selfdestruct(payable(address(0)));
     }
 }
 contract DCBomb {
-    fallback () external {
+    fallback() external {
         address(new Bomb()).delegatecall("");
     }
 }
@@ -22,14 +22,11 @@ contract DCDCBomb {
     }
 }
 `;
-var input = {
-  language: 'Solidity',
-  sources: { 'a.sol': { content: src } },
-  settings: { outputSelection: { '*': { '*': ['*'] } } }
-};
-var output = JSON.parse(solc.compile(JSON.stringify(input)));
-
-var dcdcbomb = output.contracts['a.sol']['DCDCBomb'].evm.bytecode.object;
+var dcdcbomb = JSON.parse(solc.compile(JSON.stringify({
+    language: 'Solidity',
+    sources: { 'a.sol': { content: src } },
+    settings: { outputSelection: { '*': { '*': ['*'] } } }
+    }))).contracts['a.sol']['DCDCBomb'].evm.bytecode.object;
 console.log("dcdcbomb: " + dcdcbomb);
 
 
@@ -48,11 +45,10 @@ var show = async (addr) => {
     console.log("code: " + await provider.getCode(addr));
 };
 
-// deploy DCDCBomb
+console.log("Deploying DCDCBomb...");
 var addr = (await txReceipt({data: "0x" + dcdcbomb, value: 42})).contractAddress;
 
+console.log("Trigger it!");
 show(addr);
-
-await txReceipt({to: addr, gasLimit: 100000}); // trigger the bomb
-
+await txReceipt({to: addr, gasLimit: 100000});
 show(addr);
