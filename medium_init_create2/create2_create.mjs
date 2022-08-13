@@ -5,7 +5,8 @@ var src = `
 pragma solidity ^0.8.15;
 
 contract Driver {
-    C0 private c0 = new C0();
+    // inspect these address in REMIX
+    C0 public c0 = new C0();
     address public addr1;
     address public addr2;
     address public addr3;
@@ -33,12 +34,12 @@ contract Driver {
         addr1 = address(c1);
         addr2 = address(cafe);
         addr3 = address(babe);
-    }    
+    }
 }
 contract C0 {
     function newC1() external returns (C1) {
         return new C1{salt: 0}();   // CREATE2 !!
-    }    
+    }
 }
 contract C1 {
     uint name = 0xC1;
@@ -93,10 +94,13 @@ var driver = new ethers.Contract(driverAddr,
     [ "function newC1C2C3()",
       "function bomb()",
       "function newC1CafeBabe()",
+      "function c0() view returns (address)",
       "function addr1() view returns (address)",
       "function addr2() view returns (address)",
       "function addr3() view returns (address)",
     ], signer);
+console.log("driverAddr: " + driverAddr);
+console.log("c0 addr: " + await driver.c0());
 
 console.log("\nCreating C1 -> C2 -> C3 ...");
 await (await driver.newC1C2C3()).wait();
@@ -113,4 +117,3 @@ await show(addr1); await show(addr2); await show(addr3);
 console.log("\nCreating C1 -> Cafe -> Babe ...");
 await (await driver.newC1CafeBabe()).wait();
 await show(addr1); await show(addr2); await show(addr3);
-
