@@ -5,7 +5,7 @@ var src = `
 pragma solidity ^0.8.15;
 
 contract Driver {
-    // inspect these address in REMIX
+    // inspect these addresses in REMIX
     C0 public c0 = new C0();
     address public addr1;
     address public addr2;
@@ -28,7 +28,7 @@ contract Driver {
         require(ok3);
     }
     function newC1CafeBabe() external {
-        C1 c1 = c0.newC1();         // CREATE2: at the same address
+        C1 c1 = c0.newC1();         // CREATE2: deploy C1 at the same address
         Cafe cafe = c1.newCafe();   // CREATE: replaces C2 at the same address
         Babe babe = cafe.newBabe(); // CREATE: replaces C3 at the same address
         addr1 = address(c1);
@@ -110,8 +110,7 @@ var addr3 = await driver.addr3();
 await show(addr1); await show(addr2); await show(addr3);
 
 console.log("\nSELFDESTRUCT-ing ...");
-//await (await driver.bomb()).wait();
-await (await driver.bomb({gasLimit: 100000})).wait();
+await (await driver.bomb()).wait();
 await show(addr1); await show(addr2); await show(addr3);
 
 console.log("\nCreating C1 -> Cafe -> Babe ...");
