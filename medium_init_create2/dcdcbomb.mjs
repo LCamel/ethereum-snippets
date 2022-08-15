@@ -11,23 +11,25 @@ contract Bomb {
 }
 contract DCBomb {
     fallback() external {
-        address(new Bomb()).delegatecall("");
+        (bool ok, ) = address(new Bomb()).delegatecall("");
+        require(ok);
     }
 }
 contract DCDCBomb {
-    address public dcbomb = address(new DCBomb());
+    uint private name = 0xDCDCBBBB;
     constructor() payable {}
     fallback() external {
-        dcbomb.delegatecall("");
+        (bool ok, ) = address(new DCBomb()).delegatecall("");
+        require(ok);
     }
 }
 `;
-var dcdcbomb = JSON.parse(solc.compile(JSON.stringify({
+var dcdcbombInit = JSON.parse(solc.compile(JSON.stringify({
     language: 'Solidity',
     sources: { 'a.sol': { content: src } },
     settings: { outputSelection: { '*': { '*': ['*'] } } }
     }))).contracts['a.sol']['DCDCBomb'].evm.bytecode.object;
-console.log("dcdcbomb: " + dcdcbomb);
+console.log("dcdcbombInit length: " + (dcdcbombInit.length / 2));
 
 
 var ethers = await import("ethers");
@@ -38,17 +40,17 @@ var signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 var txReceipt = async (t) => (await signer.sendTransaction(t)).wait();
 
 var show = async (addr) => {
-    console.log("======== addr: " + addr);
-    console.log("nonce: " + await provider.getTransactionCount(addr));
-    console.log("balance: " + await provider.getBalance(addr));
-    console.log("slot 0: " + await provider.getStorageAt(addr, 0));
-    console.log("code: " + await provider.getCode(addr));
+    console.log("addr: " + addr);
+    console.log("  nonce: " + await provider.getTransactionCount(addr));
+    console.log("  balance: " + await provider.getBalance(addr));
+    console.log("  slot 0: " + await provider.getStorageAt(addr, 0));
+    console.log("  code length: " + ((await provider.getCode(addr)).length - 2) / 2)
 };
 
-console.log("Deploying DCDCBomb...");
-var addr = (await txReceipt({data: "0x" + dcdcbomb, value: 42})).contractAddress;
+console.log("# Deploying DCDCBomb...");
+var addr = (await txReceipt({data: "0x" + dcdcbombInit, value: 42})).contractAddress;
+await show(addr);
 
-console.log("Trigger it!");
-show(addr);
-await txReceipt({to: addr, gasLimit: 100000});
-show(addr);
+console.log("\n# Trigger it!");
+await txReceipt({to: addr});
+await show(addr);
