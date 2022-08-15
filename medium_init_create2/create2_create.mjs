@@ -11,6 +11,7 @@ contract Driver {
     address public addr2;
     address public addr3;
 
+    // STEP 1
     function newC1C2C3() external {
         C1 c1 = c0.newC1(); // CREATE2
         C2 c2 = c1.newC2(); // CREATE
@@ -19,14 +20,16 @@ contract Driver {
         addr2 = address(c2);
         addr3 = address(c3);
     }
+    // STEP 2
     function bomb() external {
-        (bool ok1, ) = addr1.call(""); // SELFDESTRUCT
+        (bool ok1, ) = addr1.call(""); // trigger SELFDESTRUCT in fallback()
         require(ok1);
-        (bool ok2, ) = addr2.call(""); // SELFDESTRUCT
+        (bool ok2, ) = addr2.call(""); // trigger SELFDESTRUCT in fallback()
         require(ok2);
-        (bool ok3, ) = addr3.call(""); // SELFDESTRUCT
+        (bool ok3, ) = addr3.call(""); // trigger SELFDESTRUCT in fallback()
         require(ok3);
     }
+    // STEP 3
     function newC1CafeBabe() external {
         C1 c1 = c0.newC1();         // CREATE2: deploy C1 at the same address
         Cafe cafe = c1.newCafe();   // CREATE: replaces C2 at the same address
@@ -38,19 +41,21 @@ contract Driver {
 }
 contract C0 {
     function newC1() external returns (C1) {
-        return new C1{salt: 0}();   // CREATE2 !!
+        return new C1{salt: 0}();   // CREATE2 !!!
     }
 }
 contract C1 {
     uint name = 0xC1;
-    // branches
-    function newC2() external returns (C2) { return new C2(); }
-    function newCafe() external returns (Cafe) { return new Cafe(); }
+    //           addr1   addr2   addr3
+    // branches: C1   -> C2   -> C3
+    //        or C1   -> Cafe -> Babe
+    function newC2() external returns (C2) { return new C2(); }       // CREATE
+    function newCafe() external returns (Cafe) { return new Cafe(); } // CREATE
     fallback() external { selfdestruct(payable(address(0))); }
 }
 contract C2 {
     uint name = 0xC2;
-    function newC3() external returns (C3) { return new C3(); }
+    function newC3() external returns (C3) { return new C3(); }       // CREATE
     fallback() external { selfdestruct(payable(address(0))); }
 }
 contract C3 {
@@ -81,38 +86,38 @@ var signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 var txReceipt = async (t) => (await signer.sendTransaction(t)).wait();
 
 var show = async (addr) => {
-    console.log("======== addr: " + addr);
-    console.log("nonce: " + await provider.getTransactionCount(addr));
-    console.log("balance: " + await provider.getBalance(addr));
-    console.log("slot 0: " + await provider.getStorageAt(addr, 0));
-    console.log("code length: " + ((await provider.getCode(addr)).length - 2) / 2);
+    console.log("addr: " + addr);
+    console.log("  nonce: " + await provider.getTransactionCount(addr)
+              + "  balance: " + await provider.getBalance(addr)
+              + "  code length: " + ((await provider.getCode(addr)).length - 2) / 2);
+    console.log("  slot 0: " + await provider.getStorageAt(addr, 0));
 };
 
-console.log("Deploying ...");
+console.log("# Deploying ...");
 var driverAddr = (await txReceipt({data: "0x" + driverInit})).contractAddress;
-var driver = new ethers.Contract(driverAddr,
-    [ "function newC1C2C3()",
-      "function bomb()",
-      "function newC1CafeBabe()",
-      "function c0() view returns (address)",
-      "function addr1() view returns (address)",
-      "function addr2() view returns (address)",
-      "function addr3() view returns (address)",
+var driver = new ethers.Contract(driverAddr, [
+    "function newC1C2C3()",
+    "function bomb()",
+    "function newC1CafeBabe()",
+    "function c0() view returns (address)",
+    "function addr1() view returns (address)",
+    "function addr2() view returns (address)",
+    "function addr3() view returns (address)",
     ], signer);
-console.log("driverAddr: " + driverAddr);
+console.log("driver addr: " + driverAddr);
 console.log("c0 addr: " + await driver.c0());
 
-console.log("\nCreating C1 -> C2 -> C3 ...");
+console.log("\n# Creating C1 -> C2 -> C3 ...");
 await (await driver.newC1C2C3()).wait();
 var addr1 = await driver.addr1();
 var addr2 = await driver.addr2();
 var addr3 = await driver.addr3();
 await show(addr1); await show(addr2); await show(addr3);
 
-console.log("\nSELFDESTRUCT-ing ...");
+console.log("\n# SELFDESTRUCT-ing ...");
 await (await driver.bomb()).wait();
 await show(addr1); await show(addr2); await show(addr3);
 
-console.log("\nCreating C1 -> Cafe -> Babe ...");
+console.log("\n# Creating C1 -> Cafe -> Babe ...");
 await (await driver.newC1CafeBabe()).wait();
 await show(addr1); await show(addr2); await show(addr3);
