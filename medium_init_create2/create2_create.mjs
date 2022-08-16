@@ -5,7 +5,7 @@ var src = `
 pragma solidity ^0.8.15;
 
 contract Driver {
-    // inspect these addresses in REMIX
+    // you can inspect these addresses in REMIX
     C0 public c0 = new C0();
     address public addr1;
     address public addr2;
@@ -41,7 +41,7 @@ contract Driver {
 }
 contract C0 {
     function newC1() external returns (C1) {
-        return new C1{salt: 0}();   // CREATE2 !!!
+        return new C1{salt: 0}();                                  // *CREATE2*
     }
 }
 contract C1 {
@@ -64,7 +64,7 @@ contract C3 {
 }
 contract Cafe {
     uint name = 0xCafe;
-    function newBabe() external returns (Babe) { return new Babe(); }
+    function newBabe() external returns (Babe) { return new Babe(); } // CREATE
     fallback() external { selfdestruct(payable(address(0))); }
 }
 contract Babe {
